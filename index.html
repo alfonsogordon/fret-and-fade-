@@ -1,0 +1,48 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fret & Fade</title><style>
+:root{font-family:system-ui;background:#111016;color:#f6edf3}*{box-sizing:border-box}body{margin:0}header{padding:24px 5%;border-bottom:1px solid #38313e}h1{margin:0;font-size:30px}small,.muted{color:#b8aeba}main{max-width:1050px;margin:auto;padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:24px}.panel{background:#201c26;border:1px solid #3d3444;border-radius:18px;padding:20px}label{display:block;margin:13px 0 5px}select,input,button{width:100%;accent-color:#c27ca6}select,button{background:#302936;color:white;padding:11px;border:1px solid #5c4b61;border-radius:10px}button{cursor:pointer;margin-top:10px}input[type=range]{margin:5px 0 10px}.row{display:flex;justify-content:space-between}.swatches{display:flex;gap:6px;margin:15px 0}.swatches span{flex:1;height:38px;border-radius:8px}canvas{width:100%;border-radius:15px;background:#bd9688}h2{margin-top:0}@media(max-width:760px){main{grid-template-columns:1fr}}</style><header><h1>Fret <span style="color:#e4a4c6">&</span> Fade</h1><small>Guitar finishes, reimagined as eye makeup · V1</small></header><main><section class="panel"><h2>Choose your finish</h2><label>Brand</label><select id="brand"></select><label>Model</label><select id="model"></select><label>Finish</label><select id="finish"></select><div class="swatches" id="swatches"></div><label>Application style</label><select id="style"><option>Burst</option><option>Smoky</option><option>Halo</option><option>Graphic</option></select><div id="controls"></div><button id="reset">Reset adjustments</button><button id="save">Save favourite</button><button id="export">Export PNG</button><label>Upload eye photo (optional)</label><input type="file" id="photo" accept="image/*"><p class="muted">The preview is an artistic simulation. Photo overlay is approximate, not a precision face-tracking filter.</p></section><section class="panel"><h2>Live preview</h2><canvas id="canvas" width="900" height="600"></canvas><p class="muted" id="caption"></p><h2>Favourites</h2><div id="favorites"></div></section></main><script>
+const data=[
+['Gibson','Les Paul','Cherry Sunburst',['#521b22','#a92d25','#e68d32','#f6d789']],
+['Gibson','Les Paul','Tobacco Burst',['#251714','#603521','#a86a36','#e4ba76']],
+['Gibson','Les Paul','Goldtop',['#514425','#a18a43','#d5bc68','#eee0a7']],
+['Gibson','SG','Heritage Cherry',['#361019','#811d28','#c4464b','#e9968e']],
+['Fender','Stratocaster','Lake Placid Blue',['#16344e','#286b91','#65a7c6','#c6e1e7']],
+['Fender','Stratocaster','Surf Green',['#28584f','#66a89a','#a6d5bb','#e3e9d4']],
+['Fender','Telecaster','Butterscotch Blonde',['#674122','#b27c3d','#e7b96b','#f7dea4']],
+['Fender','Jazzmaster','Candy Apple Red',['#3c111d','#931b32','#db4a56','#efacaa']],
+['PRS','Custom 24','Purple Burst',['#25152e','#633779','#a56cbb','#e1acd4']],
+['PRS','Custom 24','Emerald Burst',['#102d28','#1e6850','#5bb17b','#c1dfac']],
+['PRS','McCarty','Faded Blue Jean',['#26394c','#547994','#9db7bf','#d8d2bc']],
+['Gretsch','Electromatic','Silver Sparkle',['#363840','#858d99','#bdc6cd','#f2f2ed']],
+['Gretsch','Hollow Body','Orange Stain',['#55251a','#b14b25','#e7863a','#f3be7c']],
+['Ibanez','RG','Blue Moon Burst',['#121b3d','#284a9d','#6789d0','#c6c3ed']],
+['Ibanez','AZ','Black Flat',['#121216','#333139','#65616b','#b7aeb8']]
+];
+const $=id=>document.getElementById(id), defaults={Intensity:75,Shimmer:35,Blend:70,Eyeliner:35,'Burst edge':65,'Lower lash':25,'Wing length':30};let values={...defaults},img=null;const ctx=$('canvas').getContext('2d');
+function fillSelect(el,opts){el.innerHTML='';opts.forEach(x=>el.add(new Option(x,x)));}
+function unique(xs){return [...new Set(xs)]}
+function setup(){fillSelect($('brand'),unique(data.map(x=>x[0])));updateModels();Object.keys(defaults).forEach(k=>{let wrap=document.createElement('div');wrap.innerHTML='<label class="row"><span>'+k+'</span><span id="v'+k.replaceAll(' ','')+'">'+values[k]+'%</span></label><input type="range" min="0" max="100" value="'+values[k]+'">';let slider=wrap.querySelector('input');slider.oninput=()=>{values[k]=+slider.value;wrap.querySelector('label span:last-child').textContent=slider.value+'%';draw()};$('controls').append(wrap)});draw();}
+function updateModels(){fillSelect($('model'),unique(data.filter(x=>x[0]==$('brand').value).map(x=>x[1])));updateFinishes()}
+function updateFinishes(){fillSelect($('finish'),data.filter(x=>x[0]==$('brand').value&&x[1]==$('model').value).map(x=>x[2]));draw()}
+function chosen(){return data.find(x=>x[0]==$('brand').value&&x[1]==$('model').value&&x[2]==$('finish').value)||data[0]}
+function draw(){const w=900,h=600,c=ctx,p=chosen(),colors=p[3];c.clearRect(0,0,w,h);let bg=c.createLinearGradient(0,0,w,h);bg.addColorStop(0,'#e0b6a5');bg.addColorStop(1,'#9f716a');c.fillStyle=bg;c.fillRect(0,0,w,h);
+if(img){c.drawImage(img,0,0,w,h)}
+c.save();c.beginPath();c.ellipse(450,295,340,150,0,Math.PI,2*Math.PI);c.clip();
+let g=c.createLinearGradient(100,0,800,0);colors.forEach((v,i)=>g.addColorStop(i/3,v));c.globalAlpha=values.Intensity/100*.85;c.fillStyle=g;c.fillRect(100,105,700,320);
+if($('style').value==='Halo'){let r=c.createRadialGradient(450,280,20,450,280,290);r.addColorStop(0,colors[3]);r.addColorStop(.5,colors[2]);r.addColorStop(1,colors[0]);c.fillStyle=r;c.fillRect(100,100,700,360)}
+if($('style').value==='Smoky'){let r=c.createRadialGradient(450,260,20,450,260,360);r.addColorStop(0,colors[2]);r.addColorStop(1,colors[0]);c.fillStyle=r;c.fillRect(100,100,700,360)}
+if($('style').value==='Graphic'){c.fillStyle=colors[0];c.fillRect(100,90,700,55)}
+c.globalAlpha=values['Burst edge']/150;let edge=c.createLinearGradient(110,0,790,0);edge.addColorStop(0,colors[0]);edge.addColorStop(.5,'transparent');edge.addColorStop(1,colors[0]);c.fillStyle=edge;c.fillRect(100,90,700,400);
+c.globalAlpha=values.Shimmer/100*.35;for(let i=0;i<420;i++){let x=120+(i*127.13)%660,y=140+(i*71.31)%230;c.fillStyle=i%2?'white':'#ffdbac';c.fillRect(x,y,2,2)}c.restore();
+c.globalAlpha=1;c.fillStyle='#f4e4db';c.beginPath();c.ellipse(450,315,190,88,0,0,Math.PI*2);c.fill();c.fillStyle='#6b514b';c.beginPath();c.arc(450,315,82,0,7);c.fill();c.fillStyle='#16131b';c.beginPath();c.arc(450,315,49,0,7);c.fill();c.fillStyle='#fff';c.beginPath();c.arc(425,287,16,0,7);c.fill();
+c.strokeStyle='#241b20';c.lineWidth=7+values.Eyeliner/8;c.lineCap='round';c.beginPath();c.moveTo(170,315);c.quadraticCurveTo(450,135,730,315);c.stroke();c.beginPath();c.moveTo(730,315);c.lineTo(730+values['Wing length'],290-values['Wing length']*.5);c.stroke();
+c.lineWidth=3;c.globalAlpha=values['Lower lash']/100;c.beginPath();c.moveTo(180,340);c.quadraticCurveTo(450,475,720,340);c.stroke();c.globalAlpha=1;
+$('swatches').innerHTML=colors.map(x=>'<span style="background:'+x+'"></span>').join('');$('caption').textContent=p.slice(0,3).join(' · ');}
+$('brand').onchange=updateModels;$('model').onchange=updateFinishes;$('finish').onchange=draw;$('style').onchange=draw;
+$('reset').onclick=()=>{values={...defaults};$('controls').replaceChildren();setupControlsOnly();draw()};
+function setupControlsOnly(){Object.keys(defaults).forEach((k,i)=>{let old=$('controls').children[i];if(old){old.querySelector('input').value=values[k];old.querySelector('label span:last-child').textContent=values[k]+'%'}})}
+$('export').onclick=()=>{let a=document.createElement('a');a.download='fret-and-fade.png';a.href=$('canvas').toDataURL('image/png');a.click()};
+$('save').onclick=()=>{let saved=JSON.parse(localStorage.getItem('fretFade')||'[]');saved.push({finish:chosen().slice(0,3),style:$('style').value,values:{...values}});localStorage.setItem('fretFade',JSON.stringify(saved));showFavorites()};
+function showFavorites(){$('favorites').innerHTML='';JSON.parse(localStorage.getItem('fretFade')||'[]').forEach((x,i)=>{let b=document.createElement('button');b.textContent=x.finish.join(' · ')+' ('+x.style+')';b.onclick=()=>{ $('brand').value=x.finish[0];updateModels();$('model').value=x.finish[1];updateFinishes();$('finish').value=x.finish[2];$('style').value=x.style;values={...x.values};setupControlsOnly();draw()};$('favorites').append(b)})}
+$('photo').onchange=e=>{let f=e.target.files[0];if(!f)return;let reader=new FileReader();reader.onload=()=>{img=new Image();img.onload=draw;img.src=reader.result};reader.readAsDataURL(f)};
+setup();showFavorites();
+</script></html>
